@@ -18,7 +18,6 @@
 #include "drv_spi.h"
 
 static struct stm32_spi_config spi_config;
-static struct stm32_spi spi_bus_obj;
 
 static rt_err_t stm32_spi_init(struct stm32_spi *spi_drv, struct rt_spi_configuration *cfg)
 {
@@ -261,17 +260,28 @@ static const struct rt_spi_ops stm_spi_ops =
     .xfer = spixfer,
 };
 
+/* attention!!!
+ * if you need more spi bus please adjust SPI_NUM_MAX macro
+ * */
+#define SPI_NUM_MAX                   5
+static struct stm32_spi spi_bus_obj[SPI_NUM_MAX];
+
 rt_err_t rt_hw_spi_bus_register(SPI_TypeDef *spi_num, char *bus_name)
 {
     rt_err_t result;
-
+    static rt_uint8_t spi_cnt = 0;
     spi_config.Instance = spi_num;
     spi_config.bus_name = bus_name;
-
-    spi_bus_obj.config = &spi_config;
-    spi_bus_obj.spi_bus.parent.user_data = &spi_config;
-    spi_bus_obj.handle.Instance = spi_config.Instance;
-    result = rt_spi_bus_register(&spi_bus_obj.spi_bus, spi_config.bus_name, &stm_spi_ops);
+    if(spi_cnt > SPI_NUM_MAX)
+    {
+        rt_kprintf("spi bus num over please redefine SPI_NUM_MAX macro\r\n");
+        return -RT_ERROR;
+    }
+    spi_bus_obj[spi_cnt].config = &spi_config;
+    spi_bus_obj[spi_cnt].spi_bus.parent.user_data = &spi_config;
+    spi_bus_obj[spi_cnt].handle.Instance = spi_config.Instance;
+    result = rt_spi_bus_register(&spi_bus_obj[spi_cnt].spi_bus, spi_config.bus_name, &stm_spi_ops);
+    spi_cnt++;
 
     if (result != RT_EOK)
     {
