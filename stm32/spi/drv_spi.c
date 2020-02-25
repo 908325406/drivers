@@ -272,7 +272,7 @@ rt_err_t rt_hw_spi_bus_register(SPI_TypeDef *spi_num, char *bus_name)
     static rt_uint8_t spi_cnt = 0;
     spi_config.Instance = spi_num;
     spi_config.bus_name = bus_name;
-    if(spi_cnt > SPI_NUM_MAX)
+    if(spi_cnt >= SPI_NUM_MAX)
     {
         rt_kprintf("spi bus num over please redefine SPI_NUM_MAX macro\r\n");
         return -RT_ERROR;

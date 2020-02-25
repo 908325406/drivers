@@ -14,7 +14,13 @@
 #ifdef RT_USING_I2C
 
 static struct stm32_soft_i2c_config soft_i2c_config;
-static struct stm32_i2c i2c_obj;
+
+/* attention!!!
+ * if you need more i2c bus please adjust I2C_NUM_MAX macro
+ * */
+
+#define I2C_NUM_MAX                  5
+static struct stm32_i2c i2c_obj[I2C_NUM_MAX];
 
 /**
  * This function initializes the i2c pin.
@@ -171,18 +177,26 @@ static rt_err_t stm32_i2c_bus_unlock(const struct stm32_soft_i2c_config *cfg)
 int rt_hw_i2c_init(char *name, rt_uint8_t scl, rt_uint8_t sda)
 {
     rt_err_t result;
+    static rt_uint8_t i2c_cnt = 0;
+
+    if (i2c_cnt >= I2C_NUM_MAX)
+    {
+        rt_kprintf("i2c bus num over please redefine I2C_NUM_MAX macro\r\n");
+        return -RT_ERROR;
+    }
 
     soft_i2c_config.bus_name = name;
     soft_i2c_config.scl = scl;
     soft_i2c_config.sda = sda;
 
-    i2c_obj.ops = stm32_bit_ops_default;
-    i2c_obj.ops.data = (void*)&soft_i2c_config;
-    i2c_obj.i2c2_bus.priv = &i2c_obj.ops;
-    stm32_i2c_gpio_init(&i2c_obj);
-    result = rt_i2c_bit_add_bus(&i2c_obj.i2c2_bus, soft_i2c_config.bus_name);
+    i2c_obj[i2c_cnt].ops = stm32_bit_ops_default;
+    i2c_obj[i2c_cnt].ops.data = (void*)&soft_i2c_config;
+    i2c_obj[i2c_cnt].i2c2_bus.priv = &i2c_obj[i2c_cnt].ops;
+    stm32_i2c_gpio_init(&i2c_obj[i2c_cnt]);
+    result = rt_i2c_bit_add_bus(&i2c_obj[i2c_cnt].i2c2_bus, soft_i2c_config.bus_name);
     RT_ASSERT(result == RT_EOK);
     stm32_i2c_bus_unlock(&soft_i2c_config);
+    i2c_cnt++;
 
     return RT_EOK;
 }
